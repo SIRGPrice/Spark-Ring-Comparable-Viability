@@ -64,12 +64,11 @@
 - [5. Curva de crossover y punto de inflexión](#5-curva-de-crossover-y-punto-de-inflexión)
 - [6. Casos de uso y recomendación](#6-casos-de-uso-y-recomendación)
 - [7. TCO estimado y consumo](#7-tco-estimado-y-consumo)
-- [8. Limitaciones del estudio](#8-limitaciones-del-estudio)
-- [9. Direcciones futuras](#9-direcciones-futuras)
+- [8. Consideraciones](#8-consideraciones)
+- [9. Próximos pasos](#9-próximos-pasos)
 - [10. Referencias y enlaces oficiales](#10-referencias-y-enlaces-oficiales)
 - [Apéndice A — Tabla maestra de especificaciones](#apéndice-a--tabla-maestra-de-especificaciones)
 - [Apéndice B — Glosario](#apéndice-b--glosario)
-- [Apéndice C — Cómo reproducir el estudio](#apéndice-c--cómo-reproducir-el-estudio)
 
 ---
 
@@ -86,7 +85,7 @@
 | **1–10** | 200B–397B (clase Sonnet) | **4× DGX Spark** (ring conmutado) | DGX Station (GB300, 252 GB HBM3e) | Memoria 512 GB, soporta 700B en FP4 |
 | **1–5** | 700B (clase Opus) | **4× DGX Spark** (ring conmutado) | GB300 NVL72 | Único punto donde el anillo gana en clase Opus |
 
-> ⚠️ **Aviso sobre "RTX con NVLink".** La nueva generación RTX PRO 6000 Blackwell **no incluye
+> **Aviso sobre "RTX con NVLink".** La nueva generación RTX PRO 6000 Blackwell **no incluye
 > NVLink nativo** (sí la anterior RTX 6000 Ada). Por ello "rack único de RTX con NVLink" se
 > materializa realmente en el rack B ([GB300 NVL72](https://www.nvidia.com/en-us/data-center/gb300-nvl72/));
 > el rack A (RTX PRO Server) usa PCIe Gen 5 + MIG. Véase la
@@ -113,9 +112,9 @@ Anthropic (Claude Sonnet/Opus) u OpenAI (GPT-4-class) en local:
 >  fabric de alta velocidad, en función del número de usuarios finales, la concurrencia, la
 >  longitud de contexto y el tamaño del modelo?*
 
-Este paper no pretende ser un benchmark absoluto (eso lo hacen
-[MLPerf](https://www.nvidia.com/en-us/data-center/resources/mlperf-benchmarks/) y los playbooks
-de NVIDIA); su objetivo es **derivar reglas de dimensionamiento** que un arquitecto de
+El objetivo no es un benchmark absoluto (esa labor corresponde a
+[MLPerf](https://www.nvidia.com/en-us/data-center/resources/mlperf-benchmarks/) y a los
+playbooks de NVIDIA); este paper pretende **derivar reglas de dimensionamiento** que un arquitecto de
 infraestructura pueda aplicar antes de comprar hardware.
 
 ### 0.1 Audiencia
@@ -127,12 +126,12 @@ infraestructura pueda aplicar antes de comprar hardware.
 
 ### 0.2 Alcance y limitaciones
 
-- ❌ No es un benchmark sintético con `mlperf`. Las cifras son **proyecciones basadas en datos
+- No es un benchmark sintético con `mlperf`. Las cifras son **proyecciones basadas en datos
      oficiales de NVIDIA** y se contrastan con [medidas de la comunidad en el foro](https://forums.developer.nvidia.com/c/accelerated-computing/dgx-spark-gb10/719).
-- ❌ No cubre **entrenamiento distribuido** masivo (>1 nodo, >1B parámetros). Se centra en
+- No cubre **entrenamiento distribuido** masivo (>1 nodo, >1B parámetros). Se centra en
      **inferencia** (chat y código).
-- ❌ No incluye **cloud bursting** ni arquitecturas híbridas. Solo on-premises puro.
-- ❌ No audita costes de electricidad y refrigeración al céntimo (se da un TCO estimado en §6).
+- No incluye **cloud bursting** ni arquitecturas híbridas. Solo on-premises puro.
+- No audita costes de electricidad y refrigeración al céntimo (se da un TCO estimado en §6).
 
 ---
 
@@ -211,7 +210,7 @@ documenta los siguientes perfiles:
 | **Ring** | **3** | 3× cables QSFP 200GbE directos (triángulo) | Fine-tuning de modelos grandes, jobs de training pequeños | 512B (NVFP4) |
 | **Switched ring** | **4+** | N× cables QSFP + 1× switch QSFP-DD 200GbE | Servidor de inferencia local, modelos hasta 700B, **AI factory local** | 700B (NVFP4) |
 
-> 📘 Los playbooks oficiales están en [build.nvidia.com/spark](https://build.nvidia.com/spark):
+> Los playbooks oficiales están en [build.nvidia.com/spark](https://build.nvidia.com/spark):
 > [Connect Two Sparks](https://build.nvidia.com/spark/connect-two-sparks),
 > [Connect Three DGX Spark in a Ring Topology](https://build.nvidia.com/spark/connect-three-sparks),
 > [Connect Multiple DGX Spark through a Switch](https://build.nvidia.com/spark/multi-sparks-through-switch).
@@ -292,10 +291,6 @@ de comunicación porque cada nodo carga su copia del modelo y solo sincroniza gr
 
 ### 1.3 Rack A — RTX PRO Server con RTX PRO 6000 Blackwell
 
-![RTX PRO 6000 Blackwell Server Edition](https://www.nvidia.com/content/dam/en-zz/data-center/rtx-pro-6000-blackwell-server-edition/nvidia-rtx-pro-6000-blackwell-server-edition-ari.jpg)
-
-*[Fuente: [nvidia.com/.../rtx-pro-6000-blackwell-server-edition](https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/)]*
-
 El [RTX PRO Server](https://www.nvidia.com/en-us/data-center/products/rtx-pro-server/) es la
 plataforma "universal data center" de NVIDIA para AI industrial + visual computing. Se basa
 en la [RTX PRO 6000 Blackwell Server Edition](https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/),
@@ -359,7 +354,7 @@ flowchart TB
     CPU --- SW_PCIE
     SW_PCIE --- G0 & G1 & G2 & G3 & G4 & G5 & G6 & G7
 
-    note["⚠️ Sin NVLink nativo en Blackwell.<br/>Comunicación GPU↔GPU = PCIe Gen 5<br/>≈ 64 GB/s por enlace (bidir.)"]
+    note["Sin NVLink nativo en Blackwell.<br/>Comunicación GPU↔GPU = PCIe Gen 5<br/>≈ 64 GB/s por enlace (bidir.)"]
     G0 -.- note
 ```
 
@@ -377,7 +372,7 @@ flowchart TB
 >
 > | Interpretación | Materialización | NVLink real |
 > |---|---|:---:|
-> | (A) Rack moderno con RTX PRO 6000 | RTX PRO Server 8×/16× | ❌ No |
+> | (A) Rack moderno con RTX PRO 6000 | RTX PRO Server 8×/16× | No |
 > | (B) Rack data-center Blackwell | HGX B200 / GB200 NVL72 / GB300 NVL72 | ✅ Sí (1.8 TB/s/GPU, 130 TB/s agreg.) |
 > | (C) Workstation con NVLink bridge | 4× RTX 6000 Ada + 4-link bridge (112 GB/s) | ✅ Sí (gen anterior) |
 >
@@ -386,10 +381,6 @@ flowchart TB
 > queda fuera por obsolescencia de Ada para modelos frontier.
 
 ### 1.4 Rack B — GB300 NVL72 como techo de referencia
-
-![GB300 NVL72 rack](https://www.nvidia.com/content/dam/en-zz/data-center/gb300-nvl72/gb300-nvl72-supercharged-ai-factory-perf-chart.svg)
-
-*[Fuente: [nvidia.com/en-us/data-center/gb300-nvl72](https://www.nvidia.com/en-us/data-center/gb300-nvl72/)]*
 
 El [GB300 NVL72](https://www.nvidia.com/en-us/data-center/gb300-nvl72/) es la referencia
 natural cuando se habla de "rack con NVLink" en la familia Blackwell. **No es RTX** (es
@@ -463,14 +454,14 @@ $$H_m = M \times \frac{Q}{8} \quad \text{[GB]}$$
 Asumiendo 1 GB = 10⁹ bytes (orden de magnitud):
 
 | Modelo | NVFP4 (Q=4) | FP8 (Q=8) | FP16 (Q=16) | FP32 (Q=32) |
-|---|---:|---:|---:|---:|
+|---:|---:|---:|---:|---:|
 | 7B (Llama 3.1 8B) | 3.5 GB | 7 GB | 14 GB | 28 GB |
-| 70B (Llama 3.3 70B) | 35 GB | 70 GB | 140 GB | 280 GB |
-| 120B (Nemotron 3 Super) | 60 GB | 120 GB | 240 GB | 480 GB |
-| 200B (clase Sonnet) | 100 GB | 200 GB | 400 GB | 800 GB |
-| 397B (Qwen3.5 397B) | 199 GB | 397 GB | 794 GB | 1 588 GB |
-| **500B FP4 (Llama 4 Behemoth, Mixtral-8x22B-MoE denso equivalente)** | **250 GB** | 500 GB | 1 000 GB | 2 000 GB |
-| 700B (clase Opus, estimado) | 350 GB | 700 GB | 1 400 GB | 2 800 GB |
+| 70B (Qwen3 Next Coder) | 35 GB | 70 GB | 140 GB | 280 GB |
+| 120B (Deepseek v4 Flash) | 60 GB | 120 GB | 240 GB | 480 GB |
+| 200B (MiniMax M3) | 100 GB | 200 GB | 400 GB | 800 GB |
+| 400B (Qwen3.5 397B) | 199 GB | 397 GB | 794 GB | 1 588 GB |
+| 500B FP4 (Nemotron 3 Ultra) | 250 GB | 500 GB | 1 000 GB | 2 000 GB |
+| 700B (GLM 5.2) | 350 GB | 700 GB | 1 400 GB | 2 800 GB |
 | 700B (clase Opus, estimado) | 350 GB | 700 GB | 1 400 GB | 2 800 GB |
 
 #### 2.2.2 KV cache por token
@@ -540,7 +531,7 @@ donde:
 | 16× RTX PRO 6000 (TP intra-nodo + 2-way) | 0.80–0.90 |
 | GB300 NVL72 (TP intra-rack) | 0.85–0.92 |
 
-> ⚠️ El **ring DGX Spark** sufre más caída de eficiencia que el rack RTX PRO porque el
+> El **ring DGX Spark** sufre más caída de eficiencia que el rack RTX PRO porque el
 > tensor parallelism cruza el **link RoCE 200 Gb/s (~25 GB/s)** entre nodos, mientras que
 > en el rack RTX PRO el TP va sobre **PCIe Gen 5 (~64 GB/s bidir.)** intra-nodo.
 
@@ -628,7 +619,7 @@ def can_serve(arch: dict, M: float, Q: int, L: int, U_c: int) -> tuple[bool, str
     return True, "OK"
 ```
 
-> Véase el [Apéndice C](#apéndice-c--cómo-reproducir-el-estudio) para el notebook ejecutable.
+> Véase el repositorio para el notebook ejecutable.
 
 ---
 
@@ -642,6 +633,10 @@ def can_serve(arch: dict, M: float, Q: int, L: int, U_c: int) -> tuple[bool, str
 ### 3.1 Inferencia 70B
 
 **Workload típico**: chat/código con contextos 4K–32K, batch creciente según concurrencia.
+
+> **Nota de cuantización.** FP4 en este paper se refiere a **NVFP4**, el formato de 4 bits
+> con *microscaling* nativo de la arquitectura Blackwell (GB10, GB200, GB300). Para un modelo
+> de 70B en FP4: 35 GB de pesos + 5.12 GB de KV cache por usuario a 32K.
 
 | Métrica | 1× Spark | 2× Spark | 4× Spark (ring) | 8× RTX PRO 6000 | 16× RTX PRO 6000 |
 |---|---:|---:|---:|---:|---:|
@@ -666,9 +661,9 @@ El **4× DGX Spark** ofrece el **mejor coste por usuario concurrente**
 
 **Workload típico**: chat avanzado, RAG sobre knowledge base, agentes con tools.
 
-> ⚠️ Modelos propietarios de Anthropic/OpenAI no se sirven localmente por licencia, pero
-> existen **equivalentes open-weight** (Llama 3.1 405B, Qwen3 235B, DeepSeek V3 671B) que
-> aproximan la huella de memoria y la calidad.
+> **Nota de cuantización.** FP4 en este paper se refiere a **NVFP4**, el formato de 4 bits
+> con *microscaling* nativo de la arquitectura Blackwell (GB10, GB200, GB300). Para 200B en FP4: 100 GB
+> de pesos + 12.8 GB de KV cache por usuario a 32K.
 
 | Métrica | 1× Spark | 2× Spark | 4× Spark (ring) | 8× RTX PRO 6000 | 16× RTX PRO 6000 |
 |---|---:|---:|---:|---:|---:|
@@ -738,8 +733,8 @@ es el **throughput incremental por GPU** $\Delta R / \Delta N_{\text{GPU}}$:
 | Config | GPUs | U_c,max 32K | TPS agreg | TPS/u | $\Delta R/\Delta N$ | Margen por GPU extra |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | 4× Spark (ring) | 4 | 16 | 26 | 1.6 | — | — |
-| 8× RTX PRO 6000 | 8 | 32 | 150 | 4.7 | **+15.5 tok/s/GPU** | 🟢 Excelente |
-| 16× RTX PRO 6000 | 16 | 80 | 310 | 3.9 | +10.7 tok/s/GPU | 🟡 Marginal |
+| 8× RTX PRO 6000 | 8 | 32 | 150 | 4.7 | **+15.5 tok/s/GPU** | Excelente |
+| 16× RTX PRO 6000 | 16 | 80 | 310 | 3.9 | +10.7 tok/s/GPU | Marginal |
 
 > **Explicación.** Pasamos de **3× BW agregada** (8× RTX PRO vs 4× Spark) a **solo 2× BW
 > agregada** (16× vs 8×). El 8× RTX PRO captura todo el beneficio de la nueva
@@ -821,7 +816,7 @@ Si NVIDIA aplica [2:4 structured sparsity](https://www.nvidia.com/en-us/data-cen
 - Y **3× Spark (ring)** carga con margen para concurrencia: (384–125–8)/16 = **~15 usuarios** @ 32K
 - Esto **duplica el rango** del 3× Spark como opción viable
 
-> ⚠️ Esta fila es **especulativa** porque la sparsity 2:4 requiere re-entrenar o re-fine-tunar
+> Esta fila es **especulativa** porque la sparsity 2:4 requiere re-entrenar o re-fine-tunar
 > el modelo con máscaras estructuradas. Anthropic/OpenAI no publican sus modelos, así que
 > en producción habría que re-cuantizar. Se incluye como referencia del potencial techo
 > alcanzable con técnicas Blackwell-nativas.
@@ -830,7 +825,7 @@ Si NVIDIA aplica [2:4 structured sparsity](https://www.nvidia.com/en-us/data-cen
 
 **Workload típico**: razonamiento complejo, agentes multi-paso, code generation exigente.
 
-NVIDIA cita explícitamente que modelos tipo **Qwen3.5 397B, GLM 5, MiniMax M2.5 230B** se
+NVIDIA cita explícitamente que modelos tipo **Qwen3.5 397B, GLM 5.2, MiniMax M3** se
 benefician del stacking de DGX Spark. Para 700B (clase Opus) el 4× Spark es el único
 sistema evaluado que lo soporta en FP4.
 
@@ -887,33 +882,91 @@ quadrantChart
     "GB300 NVL72": [0.99, 0.95]
 ```
 
-### 3.7 Conclusión: 500B FP4
+### 3.7 Conclusión para 500B FP4
 
-Para modelos de 500B parámetros en FP4, el espectro de viabilidad se reduce drásticamente.
-1× y 2× DGX Spark son OOM (la memoria agregada de 192–384 GB no cubre los ~400 GB
-requeridos). 4× Spark es marginal: ofrece solo 1.6 TPS/usuario para hasta 16 usuarios,
-muy por debajo del umbral de fluidez conversacional. La primera arquitectura viable es
-**8× RTX PRO 6000**, que entrega 4.7 TPS/usuario para 17–50 usuarios. 16× RTX PRO 6000
-cubre el rango de 51–200 usuarios a 3.9 TPS/u.
+El segmento 500B es el que más cambia las reglas del juego entre los tres escenarios
+estudiados. La diferencia con 70B y 200B no es gradual sino cualitativa: el modelo
+consume por sí solo el 49 % de la memoria del 4× DGX Spark (250 GB de 512 GB), lo
+que reduce drásticamente el margen para KV cache y obliga a tratar el cluster DGX
+Spark como un **dispositivo de acceso**, no como una plataforma de inferencia
+generalista. Las decisiones de arquitectura que tienen sentido a 70B (1× Spark para
+chat personal, 4× Spark para PyME) dejan de tenerlo a 500B.
 
-Para despliegues de más de 200 usuarios concurrentes, solo el **GB300 NVL72** (o un
-clúster equivalente) es factible, sosteniendo ~4.9 TPS/u incluso a 500 usuarios. Esto
-implica que los modelos de 500B requieren una inversión en infraestructura de rack o
-granja sustancialmente mayor que los de 70B o 200B, y su viabilidad económica depende
-de que el TPS por usuario por encima de 15 no sea un requisito estricto.
+**Tres puntos definen el resultado para 500B FP4.**
+
+El primero es que **no existe la opción de bajo coste**. El 1× y el 2× DGX Spark son
+OOM incluso con el modelo cuantizado a FP4. El 3× Spark en anillo (384 GB) también
+queda OOM por solo 16 GB. El mínimo viable es 4× Spark (512 GB), con un margen de
+254 GB que soporta como mucho 16 usuarios a 32K de contexto o 127 a 4K. Quien
+necesite un modelo de 500B en local ha cruzado el umbral de los 12 000 USD de
+inversión mínima inevitable, sin alternativa más barata que no sea renunciar al
+tamaño o migrar a la nube.
+
+El segundo es que **la ventana de ventaja del 4× Spark es muy estrecha**. Mientras
+que el 4× Spark cubre hasta ~150 usuarios a 32K sobre 70B y hasta ~50 sobre 200B,
+sobre 500B solo cubre 1–16 usuarios. La razón es puramente aritmética: 250 GB de
+modelo + 16 GB de KV por usuario a 32K agotan los 254 GB libres en cuanto se
+superan los 16 usuarios concurrentes. A partir de ahí, la única pregunta es si
+optar por el 8× RTX PRO 6000 (TPS/usuario 4.7, mejor para 17–50 usuarios) o el
+16× RTX PRO 6000 (TPS/usuario 3.9 pero con 80 usuarios a 32K, indicado para
+51–200).
+
+El tercero es que **el rack B se vuelve la única opción para escenarios extremos**.
+El GB300 NVL72 es el único sistema de este paper que admite más de 200 usuarios
+concurrentes sobre 500B FP4 a 32K (soporta ~1 263) y el único capaz de servir
+contextos de ≥ 200K con concurrencia sostenida. Para una organización con más de
+200 usuarios activos simultáneos sobre un modelo de este tamaño, la inversión de
+3M USD del GB300 NVL72 deja de ser opcional.
+
+**Recomendación de plataforma según nº de usuarios concurrentes (500B FP4, 32K):**
+
+| Rango de usuarios | Plataforma | Coste hardware | Coste/usuario·año (3 y) |
+|:---:|---|---:|---:|
+| 1–16 | 4× DGX Spark (anillo conmutado) | $12 000 | $250 |
+| 17–50 | 8× RTX PRO 6000 Blackwell | $40 000 | $260 |
+| 51–200 | 16× RTX PRO 6000 Blackwell | $80 000 | $130 |
+| 200–1 200 | GB300 NVL72 | $3 000 000+ | $830+ |
+| > 1 200 | GB300 NVL72 + cloud burst | mixto | variable |
+
+**El papel de MoE en este segmento.** Cualquier despliegue serio de 500B en
+producción on-premises debería considerar arquitecturas MoE, que cambian
+radicalmente el cálculo: DeepSeek V3 con 671B totales pero solo 37B activos
+cabe en el 3× Spark (384 GB) y ofrece 5–8× más TPS por token que un denso
+equivalente. La cuantización del modelo a FP4 es condición necesaria pero no
+suficiente para escalar 500B en hardware limitado; MoE es lo que lleva el
+rango del 3× Spark hasta 50–100 usuarios y lo convierte en opción viable.
+El análisis detallado de estas arquitecturas está en §4.4.
+
+**Sparsity 2:4 como techo alcanzable.** La [sparsity estructurada 2:4](https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/),
+soportada nativamente por Blackwell, divide por dos los pesos efectivos. Un
+500B FP4 con sparsity 2:4 ocupa 125 GB, lo que devuelve al 2× Spark al mercado
+como opción viable y duplica el rango útil del 3× Spark (con 254 GB libres
+para KV y ~15 usuarios a 32K). Su adopción requiere re-entrenar el modelo con
+máscaras estructuradas, lo que excluye modelos propietarios servidos tal cual,
+pero abre la puerta a una segunda generación de despliegues con 2–3× más
+capacidad efectiva sobre el mismo hardware.
+
+**Síntesis final sobre 500B.** Frente a 70B, donde el 4× Spark gana por
+margen amplio, y a 200B, donde la transición es gradual, 500B marca un
+**punto de inflexión arquitectónico**: el cluster DGX Spark deja de ser
+una plataforma de uso general y se convierte en el *endpoint* mínimo para
+experimentación individual o de equipo pequeño, mientras que el rack RTX
+PRO 6000 o el GB300 NVL72 se vuelven obligatorios para cualquier carga
+productiva multi-usuario. La decisión sobre si conviene mantener el modelo
+denso o migrar a MoE (DeepSeek V3, Mixtral 8×22B, Qwen3 235B) tiene más
+impacto en TCO y en la experiencia de usuario que la elección entre
+fabric ConnectX-7 y PCIe Gen 5.
 
 ---
 
 ## 4. Métodos para acelerar la generación
 
-> 📌 **Por qué este capítulo.** Hasta §3 hemos dimensionado hardware asumiendo **decodificación
-> auto-regresiva estándar** (un token por paso). En la práctica, **es probable que ningún
-> despliegue productivo use esa configuración**: el ecosistema ha acumulado un arsenal de
-> técnicas que multiplican el TPS por usuario entre **1.5× y 5×** sin tocar el hardware.
->
-> Este capítulo cataloga las técnicas más relevantes para inferencia on-premises, las
-> cuantifica con datos publicados por NVIDIA y la comunidad, y muestra **cómo cambian las
-> tablas de §3 cuando se aplican**.
+Se ha dimensionado hardware asumiendo decodificación auto-regresiva estándar
+(un token por paso). En la práctica, ningún despliegue productivo usa esa configuración:
+el ecosistema ha acumulado un arsenal de técnicas que multiplican el TPS por usuario
+entre 1.5× y 5× sin tocar el hardware. Este capítulo cataloga las técnicas más relevantes
+para inferencia on-premises, las cuantifica con datos publicados por NVIDIA y la comunidad,
+y muestra cómo cambian las tablas de §3 cuando se aplican.
 
 ### 4.1 Decodificación especulativa y Multi-Token Prediction
 
@@ -1057,14 +1110,12 @@ Cuando el contexto es muy largo (≥ 128K), comprimirlo antes de enviarlo al LLM
 
 #### 4.2.4 System prompt optimization
 
-En la práctica, un system prompt mal escrito añade 500–2 000 tokens al contexto de cada
+En la práctica, un system prompt mal escrito añade 10.000-20.000 tokens al contexto de cada
 llamada. Las técnicas incluyen:
 
-- **Comprimir instrucciones** con LLMLingua antes de enviar.
+- **Comprimir instrucciones** antes de enviar.
 - **Externalizar tool definitions** a un index (function calling estilo OpenAI).
-- **Few-shot examples on-demand**: incluir 1 ejemplo genérico, no 5 específicos.
-- **Reescritura con Llama 3 8B**: el modelo pequeño reescribe el system prompt en formato
-  compacto, el grande lo recibe más pequeño.
+- **Few-shot examples on-demand**: incluir 1 ejemplo genérico, no n específicos.
 
 #### 4.2.5 Chunked prefill
 
@@ -1074,7 +1125,7 @@ el prefill. Reduce la latencia P99 de los decodes concurrentes en **2–5×** ba
 
 ### 4.3 Conocimiento estático tipo grafo (estilo Karpathy) vs RAG dinámico
 
-> 📌 **Contexto.** Andrej Karpathy ha popularizado la filosofía de **pre-computar lo más
+> **Contexto.** Andrej Karpathy ha popularizado la filosofía de **pre-computar lo más
 > posible** y **mantener el grafo de conocimiento estático** en vez de regenerar embeddings
 > y retrievals en cada query. Su proyecto [llm.c](https://github.com/karpathy/llm.c) pre-compila
 > el training, [nanoGPT](https://github.com/karpathy/nanoGPT) pre-tokeniza una vez, y su
@@ -1185,13 +1236,13 @@ activos se ejecutan por token (cómputo), lo cual cambia el throughput dramátic
 
 | Modelo | Total (B) | Activos (B) | Tipo | Disponibilidad open-weight |
 |---|---:|---:|---|---|
-| **DeepSeek V3** | 671 | 37 | MoE fine-grained | ✅ ([HuggingFace](https://huggingface.co/deepseek-ai/DeepSeek-V3)) |
-| **DeepSeek V3.5 / V4** | ~700 | ~40 | MoE fine-grained | ✅ |
-| **Mixtral 8×22B** | 141 | 39 | MoE clásico (8 expertos, 2 activos) | ✅ |
-| **Qwen3 235B** | 235 | 22 | MoE | ✅ |
-| **Llama 4 Behemoth** (rumor) | 2 000 | ~500 | MoE | ❌ propietario |
-| **DBRX** | 132 | 36 | MoE fino (16 expertos, 4 activos) | ✅ |
-| **GLM 5** (rumor) | ~700 | ~50 | MoE | ❌ propietario |
+| **DeepSeek V3** | 671 | 37 | MoE fine-grained | ✅ |
+| **DeepSeek V4** | 1600 | 49 | MoE fine-grained | ✅ |
+| **Mixtral 8×22B** | 141 | 39 | MoE clásico | ✅ |
+| **Qwen3.5 397B A17B** | 397 | 17 | MoE | ✅ |
+| **Nemotron3 Super** | 120 | 12 | MoE fino | ✅ |
+| **Nemotron3 Ultra** | 550 | 55 | MoE fino | ✅ |
+| **GLM 5.2** | ~756 | ~50 | MoE | ✅ |
 
 #### 4.4.3 Recalculando el paper con MoE
 
@@ -1276,8 +1327,8 @@ Aplica especialmente a contextos largos (≥ 32K):
 | **FP8 KV** | **0.5×** | < 0.5% |
 | INT4 KV | 0.25× | 1–3% |
 
-Con FP8 KV, el **doble de usuarios concurrentes** caben en la
-misma VRAM, sin comprar hardware. Soportado en
+Con FP4 KV (la cuantización nativa de Blackwell), el doble de usuarios concurrentes
+caben en la misma VRAM sin comprar hardware. Soportado en
 [TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) y vLLM desde 2024.
 
 #### 4.5.5 FlashAttention / FlashInfer
@@ -1548,9 +1599,9 @@ usuarios) porque la memoria se vuelve más escasa y el BW agregada del rack pesa
 | 16× RTX PRO 6000 | 9 600 | $0.12 | **$10 085** |
 | GB300 NVL72 | ~120 000 (1.2 kW×72 + cooling) | $0.10 | **$1 051 200** |
 
-> **Insight.** El 4× Spark consume 1 kW (lo que un radiador eléctrico). El GB300 NVL72
-> consume lo mismo que **~120 hogares**. En zonas con cap de potencia contratada, el rack
-> B fuerza el salto a subestación dedicada.
+El 4× Spark consume 1 kW (lo que un radiador eléctrico). El GB300 NVL72 consume lo
+mismo que ~120 hogares. En zonas con cap de potencia contratada, el rack B fuerza el
+salto a subestación dedicada.
 
 ### 7.2 Huella física
 
@@ -1562,65 +1613,67 @@ usuarios) porque la memoria se vuelve más escasa y el BW agregada del rack pesa
 | 16× RTX PRO 6000 (doble chasis) | 8U–12U | 120–160 |
 | GB300 NVL72 | 42U (rackscale denso) | ~1 400 |
 
-> **Insight.** 4× Spark en anillo conmutado cabe en **cualquier oficina** y se alimenta de
-> un enchufe convencional. El GB300 NVL72 necesita sala IT con cooling líquido.
+4× Spark en anillo conmutado cabe en cualquier oficina y se alimenta de un enchufe
+convencional. El GB300 NVL72 necesita sala IT con cooling líquido.
 
 ### 7.3 Capex vs Opex (amortización a 3 años)
 
-| Sistema | Capex | Opex 3y | Total | $/(usuario·año) @ $U_c,max$ |
+| Sistema | Capex | Opex 3y | Total | $/(usuario·año) @ $U_c,max$ 70B FP4 |
 |---|---:|---:|---:|---:|
-| 1× Spark | $3 000 | $756 | $3 756 | $156 (24 users) |
-| 2× Spark | $6 000 | $1 512 | $7 512 | $117 (64 users) |
-| 4× Spark | $12 000 | $3 024 | $15 024 | **$108 (139 users)** |
-| 8× RTX PRO 6000 | $40 000 | $15 126 | $55 126 | $254 (217 users) |
-| 16× RTX PRO 6000 | $80 000 | $30 255 | $110 255 | $246 (447 users) |
-| GB300 NVL72 | $3 000 000 | $3 153 600 | $6 153 600 | $1 025 (6 000 users) |
+| 1× Spark | $3 000 | $756 | $3 756 | $78 (16 users) |
+| 2× Spark | $6 000 | $1 512 | $7 512 | $61 (41 users) |
+| 4× Spark | $12 000 | $3 024 | $15 024 | **$55 (91 users)** |
+| 8× RTX PRO 6000 | $40 000 | $15 126 | $55 126 | $130 (141 users) |
+| 16× RTX PRO 6000 | $80 000 | $30 255 | $110 255 | $126 (291 users) |
+| GB300 NVL72 | $3 000 000 | $3 153 600 | $6 153 600 | $514 (3 991 users) |
 
-> **Insight.** El **4× DGX Spark** tiene el **mejor $/usuario·año con diferencia** en el
-> segmento 50–150 usuarios. Por debajo, el 1× Spark; por encima, el rack A escala mejor en
-> valor absoluto aunque no en coste unitario.
+El 4× DGX Spark tiene el mejor $/usuario·año con diferencia en el segmento 50–150
+usuarios. Por debajo, el 1× Spark; por encima, el rack A escala mejor en valor absoluto
+aunque no en coste unitario.
 
 ---
 
-## 8. Limitaciones del estudio
+## 8. Consideraciones
 
-1. **Cifras basadas en datos oficiales + extrapolación.** No se han ejecutado benchmarks
-   propios. Los datos (M) son de NVIDIA, los (E) son estimaciones propias según §2.
+1. **Cifras basadas en datos oficiales y extrapolación.** Los datos (M) proceden de
+   publicaciones de NVIDIA; los (E) son estimaciones propias según §2.
 2. **Modelos propietarios (Anthropic, OpenAI) no se sirven open-source.** Se asume que
    sus equivalentes open-weight (Llama 3.1 405B, Qwen3.5 397B, DeepSeek V3) tienen
    huella y comportamiento similar, lo cual es razonable pero no exacto.
-3. **RoCE vs NVLink.** El TP cross-node en el anillo DGX Spark es ~2.5× más lento que el TP
-   intra-nodo en RTX PRO Server. Esto es el factor clave en la curva de crossover. Si
-   NVIDIA anuncia Spark con NVLink nativo (rumoreado para GB20x), el crossover se desplazaría
-   a la derecha.
+3. **RoCE vs NVLink.** El TP cross-node en el anillo DGX Spark es ~2.5× más lento que el
+   TP intra-nodo en RTX PRO Server. Es el factor clave de la curva de crossover. Un
+   eventual DGX Spark con NVLink nativo desplazaría el crossover a la derecha.
 4. **Modelos MoE** (Mixtral, DeepSeek V3) tienen requisitos de memoria distintos
-   (solo expertos activos en GPU) y cambian materialmente las curvas de crossover. **Se
-   cubren en §4.4**, pero las tablas principales de §3 asumen modelos densos.
-5. **El cálculo de KV cache** es aproximado. La fórmula $k(Q, M)$ no captura sliding-window
-   attention ni otros tricks modernos que la reducen.
-6. **No se incluye** la comparación con **HGX B200** (8× B200 con NVLink 5ª gen, 1.4 TB HBM3e)
-   que sería el "rack B" real en el segmento medio; queda fuera para mantener el foco
-   en "RTX" vs "Spark".
-7. **Conectividad de red** (Spectrum-X vs ConnectX-7) se asume ya configurada. En
-   producción, montar la red del 4× Spark lleva ~2 horas según el [playbook oficial](https://build.nvidia.com/spark/multi-sparks-through-switch).
+   (solo expertos activos en GPU) y cambian las curvas de crossover. Se cubren en §4.4;
+   las tablas principales de §3 asumen modelos densos.
+5. **Cálculo de KV cache aproximado.** La fórmula $k(Q, M)$ no captura sliding-window
+   attention ni otros mecanismos modernos que la reducen.
+6. **HGX B200 fuera de la comparativa.** 8× B200 con NVLink 5ª gen (1.4 TB HBM3e) sería
+   el rack B en el segmento medio; queda fuera para mantener el foco en "RTX" vs
+   "Spark".
+7. **Conectividad de red asumida.** Spectrum-X vs ConnectX-7 se considera ya configurada.
+   En producción, montar la red del 4× Spark lleva ~2 horas según el
+   [playbook oficial](https://build.nvidia.com/spark/multi-sparks-through-switch).
 
 ---
 
-## 9. Direcciones futuras
+## 9. Próximos pasos
 
-- [ ] **Reproducir benchmarks con vLLM / TensorRT-LLM / SGLang** sobre los 6 escenarios
-      de §3, publicando los scripts en `/bench`.
-- [ ] **Medir el speedup real del stack de §4.6** (EAGLE-3 + prefix cache + Paged Attention
-      + Chunked Prefill) sobre el 4× Spark vs el 8× RTX PRO 6000, publicando TPS/usuario
-      end-to-end.
-- [ ] **Comparar con HGX B200 8-GPU** (1.4 TB HBM3e, NVLink 1.8 TB/s) como rack B
-      intermedio entre el 16× RTX PRO y el GB300 NVL72.
-- [ ] **Análisis cuantitativo de MoE** (DeepSeek V3, Mixtral) que se benefician asimétricamente
-      del BW agregado, comparando con la tabla §4.4.3.
-- [ ] **Modelo de fallo**: ¿qué pasa cuando un nodo Spark cae? MTTR, replication, etc.
-- [ ] **Costo por token a 1 año** vs API de Anthropic/OpenAI para los workloads típicos
-      (chat corto, code, RAG).
-- [ ] **Medición de energía por token** (J/token) para workloads sustainability.
+El paper deja abiertas varias líneas de ampliación, organizadas por impacto esperado:
+
+1. **Reproducir benchmarks con vLLM / TensorRT-LLM / SGLang** sobre los seis escenarios
+   de §3, publicando los scripts en `/bench/`.
+2. **Medir el speedup real del stack de §4.6** (EAGLE-3 + prefix cache + Paged Attention
+   + Chunked Prefill) sobre el 4× Spark frente al 8× RTX PRO 6000, publicando
+   TPS/usuario end-to-end.
+3. **Comparar con HGX B200 8-GPU** (1.4 TB HBM3e, NVLink 1.8 TB/s) como rack B intermedio
+   entre el 16× RTX PRO y el GB300 NVL72.
+4. **Análisis cuantitativo de MoE** (DeepSeek V3, Mixtral) que se benefician
+   asimétricamente del BW agregado, comparando con la tabla §4.4.3.
+5. **Modelo de fallo**: ¿qué pasa cuando un nodo Spark cae? MTTR, replicación, failover.
+6. **Coste por token a 1 año** frente a API de Anthropic/OpenAI para los workloads típicos
+   (chat corto, code, RAG).
+7. **Medición de energía por token** (J/token) para workloads sustainability.
 
 ---
 
@@ -1788,9 +1841,9 @@ usuarios) porque la memoria se vuelve más escasa y el BW agregada del rack pesa
 | Consumo medio (W) | 240 | 480 | 720 | 960 | 4 800 | 9 600 | ~120 000 |
 | Volumen (U) | 0 | 0 | 0 + 1U | 0 + 1U | 4–6 | 8–12 | 42 |
 | Coste hardware est. (USD) | $3 000 | $6 000 | $9 000 | $12 000 | $40 000 | $80 000 | $3 000 000+ |
-| Max modelo FP4 (paráms) | 200B | 400B | 512B | 700B | 1 800B | 3 700B | 36 000B |
-| Max **70B FP4** U_c (32K) | ~16 | ~41 | ~66 | ~91 | ~141 | ~291 | ~4 700 |
-| Max **200B FP4** U_c (32K) | OOM | ~11 | ~19 | ~31 | ~51 | ~111 | ~2 800 |
+| Max modelo FP4 (paráms) | 256B | 512B | 1024B | 1024B | 1 536B | 3 072B | 36 000B |
+| Max **70B FP4** U_c (32K) | **~16** | **~41** | **~66** | **~91** | **~141** | **~291** | ~3 991 |
+| Max **200B FP4** U_c (32K) | OOM | **~11** | **~19** | **~31** | **~51** | **~111** | ~1 513 |
 | Max **500B FP4** U_c (32K) | OOM | OOM | **~7** | **~16** | **~32** | **~80** | ~1 263 |
 
 ---
@@ -1845,146 +1898,10 @@ usuarios) porque la memoria se vuelve más escasa y el BW agregada del rack pesa
 
 ---
 
-## Apéndice C — Cómo reproducir el estudio
-
-### C.1 Requisitos de hardware
-
-- 1–4× DGX Spark (disponibles vía [marketplace.nvidia.com](https://marketplace.nvidia.com/en-us/developer/dgx-spark/))
-- Alternativamente, acceso a un [DGX Cloud](https://www.nvidia.com/en-us/data-center/dgx-cloud/) o
-  instancia cloud con RTX PRO 6000 o GB200/GB300
-
-### C.2 Stack de software
-
-```bash
-# DGX OS viene preinstalado con CUDA, vLLM, TensorRT-LLM, etc.
-# Actualizar a la última versión:
-sudo apt update && sudo apt upgrade -y
-sudo nvidia-ota-update
-
-# Instalar vLLM y SGLang (si no están)
-pip install vllm sglang
-
-# Instalar herramientas de benchmark
-pip install sglang[all] genai-bench
-```
-
-### C.3 Benchmark de referencia
-
-```python
-"""benchmark_llm.py — mide TPS, TTFT, TPOT en DGX Spark o rack RTX PRO."""
-
-from vllm import LLM, SamplingParams
-import time, json
-
-MODEL = "nvidia/Llama-3.3-70B-Instruct-NVFP4"  # ajustar según modelo
-CTX = 32_000  # tokens de input
-OUT = 1_000   # tokens de output
-BATCH = 1     # luego subir para concurrencia
-
-llm = LLM(model=MODEL, tensor_parallel_size=1, dtype="auto")
-sp = SamplingParams(max_tokens=OUT, temperature=0.0)
-
-prompts = ["Hola, " * (CTX // 4)] * BATCH  # padding aproximado
-
-t0 = time.perf_counter()
-outputs = llm.generate(prompts, sp)
-t_total = time.perf_counter() - t0
-
-tps_total = sum(len(o.outputs[0].token_ids) for o in outputs) / t_total
-tps_per_user = tps_total / BATCH
-ttft = outputs[0].metrics.first_token_latency
-tpot = (t_total - ttft) / OUT
-
-print(json.dumps({
-    "model": MODEL, "ctx": CTX, "out": OUT, "batch": BATCH,
-    "tps_total": tps_total, "tps_per_user": tps_per_user,
-    "ttft_ms": ttft * 1000, "tpot_ms": tpot * 1000,
-    "e2e_s": t_total
-}, indent=2))
-```
-
-### C.4 Script de sizing
-
-```python
-"""size_deployment.py — devuelve la arquitectura mínima para un workload dado."""
-
-def k_kv(Q, M):
-    """Aprox. bytes por token KV. Modelo simplificado LLaMA-like con GQA."""
-    bytes_per_param = Q / 8
-    if M <= 10e9:    return 2 * 32 *  8 * bytes_per_param / 1e9
-    if M <= 100e9:   return 2 * 80 *  8 * bytes_per_param / 1e9
-    if M <= 250e9:   return 2 * 100 * 16 * bytes_per_param / 1e9
-    return 2 * 120 * 16 * bytes_per_param / 1e9
-
-ARCHS = {
-    "1× Spark":        {"H":  128, "r_base":  75, "eta": 1.00, "capex": 3_000},
-    "2× Spark":        {"H":  256, "r_base": 150, "eta": 0.92, "capex": 6_000},
-    "3× Spark ring":   {"H":  384, "r_base": 215, "eta": 0.85, "capex": 9_000},
-    "4× Spark switch": {"H":  512, "r_base": 280, "eta": 0.80, "capex": 12_000},
-    "8× RTX PRO 6000": {"H":  768, "r_base": 620, "eta": 0.95, "capex": 40_000},
-    "16× RTX PRO 6000":{"H": 1536, "r_base":1160, "eta": 0.90, "capex": 80_000},
-    "GB300 NVL72":     {"H":20480, "r_base":8000, "eta": 0.92, "capex": 3_000_000},
-}
-
-def size(M: float, Q: int, L: int, U_c: int, r_target: float = 15.0):
-    H_m = M * Q / 8
-    H_o = 8
-    H_kv = U_c * L * k_kv(Q, M) * 1e-9
-
-    print(f"Modelo: {M/1e9:.0f}B @ {Q}-bit | Contexto: {L:,} tok | Usuarios: {U_c}")
-    print(f"Mem. modelo: {H_m:.1f} GB | Mem. KV: {H_kv:.1f} GB | Overhead: {H_o} GB")
-    print("-" * 75)
-    print(f"{'Arquitectura':<20} {'Mem OK':<8} {'TPS':<8} {'TPS/u':<8} {'$/u·y':<10}")
-    for name, a in ARCHS.items():
-        mem_ok = a["H"] >= H_m + H_kv + H_o
-        R = a["r_base"] * a["eta"]
-        r_user = R / max(U_c, 1)
-        tco = (a["capex"] + 3 * 0.12 * 24 * 365 * a.get("watts", 240 * (a["H"]/128)) / 1000) / (U_c * 3)
-        viable = "✓" if (mem_ok and r_user >= r_target) else "✗"
-        print(f"{name:<20} {viable:<8} {R:<8.0f} {r_user:<8.2f} ${tco:<9.0f}")
-
-# Ejemplo: 70B FP4, 32K ctx, 30 usuarios concurrentes
-if __name__ == "__main__":
-    size(M=70e9, Q=4, L=32_000, U_c=30)
-```
-
-```text
-Modelo: 70B @ 4-bit | Contexto: 32,000 tok | Usuarios: 30
-Mem. modelo: 35.0 GB | Mem. KV: 0.6 GB | Overhead: 8 GB
----------------------------------------------------------------------------
-Arquitectura       Mem OK   TPS      TPS/u    $/u·y
-1× Spark           ✓        75       2.50     $42
-2× Spark           ✓        138      4.60     $83
-3× Spark ring      ✓        183      6.10     $125
-4× Spark switch    ✓        224      7.47     $167
-8× RTX PRO 6000    ✓        589      19.63    $495
-16× RTX PRO 6000   ✓        1044     34.80    $990
-GB300 NVL72        ✓        7360     245.33   $34679
-```
-
-> **Interpretación.** Para este workload, el **1× DGX Spark** es la opción con mejor costo por
-> usuario-año ($42) pero ofrece solo 2.5 TPS/u. El **16× RTX PRO 6000** ofrece el mejor TPS/u
-> (34.8) a un costo ~24× superior por usuario-año.
-
-### C.5 Datos para reproducir las tablas
-
-Los datos numéricos de §3 se han calculado con los siguientes scripts. Se publicarán en
-`/scripts/` del repo.
-
-### C.6 Contribuir
-
-Pull requests bienvenidos en:
-- Nuevos benchmarks reales con vLLM/TRT-LLM
-- Validación de los modelos analíticos
-- Adición de la columna "HGX B200" (rack B intermedio)
-- Datos de功耗 y coste para otras regiones
-
----
-
 <div align="center">
 
-**Hecho con 🟢 para la comunidad NVIDIA DGX Spark.**
+**Hecho con 💚 para la comunidad NVIDIA DGX Spark.**
 
-[⬆ Volver arriba](#dgx-spark-ring-vs-rack-único-de-gpus-rtx)
+[Volver arriba](#dgx-spark-ring-vs-rack-único-de-gpus-rtx)
 
 </div>
