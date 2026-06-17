@@ -12,7 +12,7 @@
 [![Status: Active](https://img.shields.io/badge/Status-Active-success.svg?style=for-the-badge)]()
 [![Last Update: June 2026](https://img.shields.io/badge/Última%20actualización-Junio%202026-blue.svg?style=for-the-badge)]()
 
-> **Resumen ejecutivo.** Este paper compara dos estrategias para servir LLMs de tipo Anthropic
+> **Resumen** Este paper compara dos estrategias para servir LLMs de tipo Anthropic
 > Claude u OpenAI GPT localmente, en un rango de 1 a ~500 usuarios concurrentes:
 >
 > 1. **Topología incremental de clusters de 4× DGX Spark** interconectados en **anillo físico**
@@ -105,8 +105,7 @@ Simultáneamente, el ecosistema de servidores profesionales ha incorporado las n
 96 GB de GDDR7 y hasta 4 PFLOPS FP4 por GPU, en chasis de 4U/6U que admiten 8 ó 16 GPUs por
 servidor, comercializados como [NVIDIA RTX PRO Server](https://www.nvidia.com/en-us/data-center/products/rtx-pro-server/).
 
-**Pregunta de investigación.** Para una organización que necesita servir modelos de clase
-Anthropic (Claude Sonnet/Opus) u OpenAI (GPT-4-class) en local:
+**Pregunta fundamental** Para una organización que necesita servir modelos de frontera en local:
 
 > *¿Cuántos nodos DGX Spark en anillo son competitivos frente a un único rack de GPUs RTX con
 >  fabric de alta velocidad, en función del número de usuarios finales, la concurrencia, la
@@ -126,8 +125,8 @@ infraestructura pueda aplicar antes de comprar hardware.
 
 ### 0.2 Alcance y limitaciones
 
-- No es un benchmark sintético con `mlperf`. Las cifras son **proyecciones basadas en datos
-     oficiales de NVIDIA** y se contrastan con [medidas de la comunidad en el foro](https://forums.developer.nvidia.com/c/accelerated-computing/dgx-spark-gb10/719).
+- No es un benchmark sintético. Las cifras son **proyecciones basadas en datos
+     oficiales de NVIDIA** y se contrastan con [medidas de la comunidad](https://forums.developer.nvidia.com/c/accelerated-computing/dgx-spark-gb10/719).
 - No cubre **entrenamiento distribuido** masivo (>1 nodo, >1B parámetros). Se centra en
      **inferencia** (chat y código).
 - No incluye **cloud bursting** ni arquitecturas híbridas. Solo on-premises puro.
@@ -138,10 +137,6 @@ infraestructura pueda aplicar antes de comprar hardware.
 ## 1. Hardware bajo estudio
 
 ### 1.1 NVIDIA DGX Spark (nodo único)
-
-![DGX Spark desktop form factor](https://www.nvidia.com/content/dam/en-zz/Solutions/dgx-spark/dgx-spark-ari-r1-2x.jpg)
-
-*[Fuente: [nvidia.com/en-us/products/workstations/dgx-spark](https://www.nvidia.com/en-us/products/workstations/dgx-spark/)]*
 
 El [DGX Spark](https://www.nvidia.com/en-us/products/workstations/dgx-spark/) es la "AI supercomputer
 on your desk" anunciada por NVIDIA. Su datasheet oficial reporta:
@@ -602,26 +597,6 @@ Una arquitectura es **viable** si y solo si cumple simultáneamente:
 1. **Memoria**: $H \geq H_{\min}$
 2. **Throughput**: $N \times r_{\text{per-Spark}} \times \eta(N) \geq R_{\min}$
 
-#### 2.4.3 Implementación
-
-```python
-def can_serve(arch: dict, M: float, Q: int, L: int, U_c: int) -> tuple[bool, str]:
-    """Devuelve (viable, motivo)"""
-    H = arch["H_total_GB"]
-    H_m = M * Q / 8
-    k = approx_kv_per_token(Q, M)  # bytes/token
-    H_needed = H_m + U_c * L * k / 1e9 + arch["H_overhead_GB"]
-    if H < H_needed:
-        return False, f"Memoria insuficiente: {H:.0f} GB < {H_needed:.0f} GB"
-    R = arch["N_compute"] * arch["r_base"] * arch["eta"]
-    if R < U_c * 15:
-        return False, f"Throughput insuficiente: {R:.0f} tok/s < {U_c*15} tok/s"
-    return True, "OK"
-```
-
-> Véase el repositorio para el notebook ejecutable.
-
----
 
 ## 3. Comparativa por escenario
 
@@ -1242,7 +1217,7 @@ activos se ejecutan por token (cómputo), lo cual cambia el throughput dramátic
 | **Qwen3.5 397B A17B** | 397 | 17 | MoE | ✅ |
 | **Nemotron3 Super** | 120 | 12 | MoE fino | ✅ |
 | **Nemotron3 Ultra** | 550 | 55 | MoE fino | ✅ |
-| **GLM 5.2** | ~756 | ~50 | MoE | ✅ |
+| **GLM 5.2** | 756 | 50 | MoE | ✅ |
 
 #### 4.4.3 Recalculando el paper con MoE
 
@@ -1416,7 +1391,7 @@ escenario. En producción real:
 | Producción 500B multi-tenant | TRT-LLM + P/D disaggregation | SLA-define | 16× RTX PRO + GB300 |
 | Razonamiento profundo (Opus class) | TRT-LLM + speculative decoding | 5+ | 16× RTX PRO o GB300 |
 
-> **Resumen ejecutivo del §4.** Aplicando el stack de optimizaciones adecuado, **se
+> **Resumen** Aplicando el stack de optimizaciones adecuado, **se
 > multiplica entre 10× y 100× el TPS/usuario** sobre el baseline auto-regresivo, lo que
 > cambia materialmente las recomendaciones de §3 y §5. **El hardware dimensionado en §3 es
 > el suelo, no el techo.** La verdadera palanca competitiva está en el software stack.
